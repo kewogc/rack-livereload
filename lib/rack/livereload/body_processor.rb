@@ -6,6 +6,7 @@ module Rack
       LIVERELOAD_JS_PATH = '/__rack/livereload.js'
       HEAD_TAG_REGEX = /<head>|<head[^(er)][^<]*>/
       LIVERELOAD_PORT = 35729
+      LIVERELOAD_LOCAL_HOST = 'localhost'
 
       attr_reader :content_length, :new_body, :livereload_added
 
@@ -17,9 +18,14 @@ module Rack
         "#{protocol}://localhost:#{@options[:live_reload_port]}/livereload.js"
       end
 
+      def local_uri
+        livereload_local_uri.gsub('localhost', (@options[:local_host] || @options[:live_local_host]))
+      end
+
       def initialize(body, options)
         @body, @options = body, options
         @options[:live_reload_port] ||= LIVERELOAD_PORT
+        @options[:live_local_host] ||= LIVERELOAD_LOCAL_HOST
 
         @processed = false
       end
@@ -41,7 +47,7 @@ module Rack
           require 'net/http'
           require 'uri'
 
-          uri = URI.parse(livereload_local_uri)
+          uri = URI.parse(local_uri)
 
           http = Net::HTTP.new(uri.host, uri.port)
           http.read_timeout = 1
@@ -92,6 +98,7 @@ module Rack
       def host_to_use
         (@options[:host] || @env['HTTP_HOST'] || 'localhost').gsub(%r{:.*}, '')
       end
+
 
       def template
         ERB.new(::File.read(::File.expand_path('../../../../skel/livereload.html.erb', __FILE__)))
